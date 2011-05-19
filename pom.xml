@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>me.passivepicasso.util</groupId>
 	<artifactId>me.passivepicasso.util</artifactId>
-	<version>0.0.1</version>
+	<version>0.1.0</version>
 	<repositories>
 		<repository>
 			<id>lambdaj</id>

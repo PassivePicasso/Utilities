@@ -6,15 +6,18 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import me.passivepicasso.util.SchemaUpdate.UpdateType;
 
 import org.neodatis.odb.ODB;
 import org.neodatis.odb.ODBFactory;
 import org.neodatis.odb.Objects;
+import org.neodatis.odb.OdbConfiguration;
 
 public class DatabaseManager {
 
+    @SuppressWarnings("unused")
     private static class InvalidUpdateDataException extends Exception {
         private String     message;
         private UpdateType updateType;
@@ -29,178 +32,147 @@ public class DatabaseManager {
             return message;
         }
 
-        @SuppressWarnings("unused")
         public String getUpdateType() {
             return updateType.toString();
         }
     }
 
     private static ODB             odb;
-    private static DatabaseVersion dv = new DatabaseVersion();
-    private static Logger          log;
-    private static String          filename;
-    private static String          pluginName;
+    private static DatabaseVersion version;
+    private static Logger          log = Logger.getLogger("pPDatabaseManager");
+    private static String          filename, pluginName;
 
-    public static void initialize( String pluginName ) {
-        DatabaseManager.pluginName = pluginName;
-        filename = pluginName + ".neodatis";
-        odb = ODBFactory.open("./plugins/" + pluginName + "/" + filename);
-        store(dv);
-    }
-
-    public static void setLog( Logger log ) {
-        DatabaseManager.log = log;
-    }
-
-    static {
-        dv.setMajor(0);
-        dv.setMinor(1);
-        dv.setSub(3);
+    public static int addAll( Object... objects ) {
+        if (odb.isClosed()) {
+            return 0;
+        }
+        int i = 0;
+        for (Object o : objects) {
+            if (store(o)) {
+                i++;
+            }
+        }
+        odb.commit();
+        return i;
     }
 
     public static void close() {
         odb.close();
     }
 
-    public static void open() {
-        odb = ODBFactory.open("./plugins/" + pluginName + "/" + filename);
+    public static File getDatabaseFile() {
+        return new File("." + File.pathSeparator + "plugins" + pluginName + File.pathSeparator + filename);
     }
 
     public static String getFilename() {
         return filename;
     }
 
-    public static File getDatabaseFile() {
-        return new File("." + File.pathSeparator + "plugins" + pluginName + File.pathSeparator + filename);
+    public static <T> List<T> getList( Class<T> type ) {
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been opened.");
+        Objects<T> results = odb.getObjects(type);
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been closed.");
+        return new ArrayList<T>(results);
+    }
+
+    public static <T> Set<T> getSet( Class<T> type ) {
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been opened.");
+        Objects<T> results = odb.getObjects(type);
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been closed.");
+        return new HashSet<T>(results);
+    }
+
+    /**
+     * Initialize and open the database.
+     * 
+     * @param pluginName
+     */
+    public static void initialize( String pluginName, DatabaseVersion version ) throws NullPointerException {
+
+        log.info("Beginning initialization");
+        DatabaseManager.pluginName = pluginName;
+        DatabaseManager.filename = pluginName + ".neodatis";
+
+        OdbConfiguration.setReconnectObjectsToSession(true);
+        OdbConfiguration.setDebugEnabled(true);
+
+        odb = ODBFactory.open("./plugins/" + pluginName + "/" + filename);
+        log.info("Database Open");
+
+        DatabaseManager.version = version;
+
+        Objects<DatabaseVersion> versions = odb.getObjects(DatabaseVersion.class);
+
+        int oldVersionCount = 0;
+        boolean foundExpectedVersion = false;
+
+        if (versions.size() == 0) {
+            log.info("No existing database found, initializing new database.");
+            store(DatabaseManager.version);
+            odb.commit();
+        } else {
+            while (versions.hasNext()) {
+                DatabaseVersion current = versions.next();
+                int result = DatabaseManager.version.compareTo(current);
+                if (result == 1) {
+                    oldVersionCount++;
+                } else if (result == 0) {
+                    foundExpectedVersion = true;
+                }
+            }
+            if (oldVersionCount == versions.size()) {
+                log.info("[DATABASE] " + pluginName + ".neodatis older than the version this plugin is looking for.");
+                log.info("[DATABASE] Checking for SchemaUpdate Database...");
+                // TODO Update Database Schema
+                log.info("[DATABASE] No SchemaUpdate Database found.");
+            } else if ((oldVersionCount == versions.size() - 1) && foundExpectedVersion) {
+                log.info("[DATABASE] Database version verified.");
+            } else if (oldVersionCount == versions.size() - 2) {
+                log.info("[DATABASE] " + pluginName + ".neodatis newer than the version this plugin is looking for.");
+            }
+        }
+    }
+
+    public static void open() {
+        odb = ODBFactory.open("./plugins/" + pluginName + "/" + filename);
     }
 
     public static boolean store( Object object ) {
         if (odb.isClosed()) {
             return false;
         }
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been opened.");
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been opened.");
         odb.store(object);
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been closed.");
+        log.finer("[DATABASE] " + pluginName + ".neodatis has been closed.");
         odb.commit();
         return true;
     }
 
-    public static void store( Object... objects ) {
-        for (Object o : objects) {
-            store(o);
-        }
-        odb.commit();
-    }
-
-    public static void verifySchema() {
-        Objects<DatabaseVersion> dvs = odb.getObjects(DatabaseVersion.class);
-        DatabaseVersion stored = dvs.getFirst();
-        for (DatabaseVersion dV : dvs) {
-            if (dV.compareTo(stored) == 1) {
-                stored = dV;
-            }
-        }
-        int diff = dv.compareTo(stored);
-        if (diff == -1) {
-            log.log(Level.SEVERE, "Your database is a newer version than this pluging, you cannot use this version of the plugin with your current database.");
-            log.log(Level.SEVERE, "Two historical versions are saved under your /plugins/CraftBox/dbHistory folder.");
-        } else if (diff == 1) {
-        }
-    }
-
-    public enum UpdateType {
-        ADD_FIELD, CHANGE_FIELDTYPE, REMOVE_FIELD, REMOVE_CLASS, CHANGE_FIELDNAME, CHANGE_CLASSNAME
-    };
-
-    /**
-     * Supply UpdateType.CHANGE_FIELDNAME for updateType to rename a field
-     * 
-     * @param <T>
-     * @param className
-     * @param fieldName
-     * @param newFieldName
-     * @param updateType
-     * @throws InvalidUpdateDataException
-     */
-    public static void updateSchema( String className, String fieldName, String newFieldName, UpdateType updateType ) throws InvalidUpdateDataException {
-        if (!UpdateType.CHANGE_FIELDNAME.equals(updateType)) {
-            throw new InvalidUpdateDataException("Invalid data provided for UpdateType." + updateType.toString() + ".", updateType);
-        }
-        updateSchema(className, fieldName, null, updateType, newFieldName);
-    }
-
-    /**
-     * Supply UpdateType.CHANGE_CLASSNAME for updateType to rename a class
-     * 
-     * @param className
-     * @param newClassName
-     * @param updateType
-     * @throws InvalidUpdateDataException
-     */
-    public static void updateSchema( String className, String newClassName, UpdateType updateType ) throws InvalidUpdateDataException {
-        if (!UpdateType.CHANGE_CLASSNAME.equals(updateType)) {
-            throw new InvalidUpdateDataException("Invalid data provided for UpdateType." + updateType.toString() + ".", updateType);
-        }
-        updateSchema(className, null, null, updateType, newClassName);
-    }
-
-    /**
-     * Supply UpdateType.ADD_FIELD for updateType to rename a class
-     * Supply UpdateType.CHANGE_FIELDTYPE for updateType to change the class type of a field
-     * Supply UpdateType.REMOVE_CLASS to remove a class
-     * Supply UpdateType.REMOVE_FIELD to remove a field from a class
-     * 
-     * @param className
-     * @param newClassName
-     * @param updateType
-     * @throws InvalidUpdateDataException
-     */
-    public static void updateSchema( String className, String fieldName, Class<?> newType, UpdateType updateType ) throws InvalidUpdateDataException {
-        if (UpdateType.CHANGE_CLASSNAME.equals(updateType) || UpdateType.CHANGE_FIELDNAME.equals(updateType)) {
-            throw new InvalidUpdateDataException("Invalid data provided for UpdateType." + updateType.toString() + ".", updateType);
-        }
-        updateSchema(className, fieldName, newType, updateType, null);
-    }
-
-    private static void updateSchema( String className, String fieldName, Class<?> clazz, UpdateType updateType, String newFieldName ) {
+    @SuppressWarnings("unused")
+    private static void updateSchema( SchemaUpdate update ) {
         try {
-            switch (updateType) {
+            switch (update.getUpdateType()) {
                 case CHANGE_CLASSNAME:
-                    odb.getRefactorManager().renameClass(className, newFieldName);
+                    odb.getRefactorManager().renameClass(update.getClassName(), update.getNewName());
                     break;
                 case ADD_FIELD:
-                    odb.getRefactorManager().addField(className, clazz, fieldName);
+                    odb.getRefactorManager().addField(update.getClassName(), update.getClazz(), update.getFieldName());
                     break;
                 case CHANGE_FIELDNAME:
-                    odb.getRefactorManager().renameField(className, fieldName, newFieldName);
+                    odb.getRefactorManager().renameField(update.getClassName(), update.getFieldName(), update.getNewName());
                     break;
                 case CHANGE_FIELDTYPE:
-                    odb.getRefactorManager().changeFieldType(className, fieldName, clazz);
+                    odb.getRefactorManager().changeFieldType(update.getClassName(), update.getFieldName(), update.getClazz());
                     break;
                 case REMOVE_CLASS:
-                    odb.getRefactorManager().removeClass(className);
+                    odb.getRefactorManager().removeClass(update.getClassName());
                     break;
                 case REMOVE_FIELD:
-                    odb.getRefactorManager().removeField(className, fieldName);
+                    odb.getRefactorManager().removeField(update.getClassName(), update.getFieldName());
                     break;
             }
         } catch (IOException e1) {
             e1.printStackTrace();
         }
     }
-
-    public static <T> List<T> getList( Class<T> type ) {
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been opened.");
-        Objects<T> results = odb.getObjects(type);
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been closed.");
-        return new ArrayList<T>(results);
-    }
-
-    public static <T> Set<T> getSet( Class<T> type ) {
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been opened.");
-        Objects<T> results = odb.getObjects(type);
-        log.log(Level.FINER, "[DATABASE] " + pluginName + ".neodatis has been closed.");
-        return new HashSet<T>(results);
-    }
-
 }

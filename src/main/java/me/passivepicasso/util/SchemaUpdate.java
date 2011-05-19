@@ -1,11 +1,29 @@
 package me.passivepicasso.util;
 
 public class SchemaUpdate {
+    public enum UpdateType {
+        ADD_FIELD, CHANGE_FIELDTYPE, REMOVE_FIELD, REMOVE_CLASS, CHANGE_FIELDNAME, CHANGE_CLASSNAME
+    }
+
+    private String     className, fieldName, newName;
+    private Class<?>   clazz;
+    private UpdateType updateType;
+
+    public SchemaUpdate() {
+    }
+
     /**
      * @return the className
      */
     public String getClassName() {
         return className;
+    }
+
+    /**
+     * @return the clazz
+     */
+    public Class<?> getClazz() {
+        return clazz;
     }
 
     /**
@@ -16,20 +34,57 @@ public class SchemaUpdate {
     }
 
     /**
-     * @return the clazz
+     * @return the newName
      */
-    public Class<?> getClazz() {
-        return clazz;
+    public String getNewName() {
+        return newName;
     }
 
-    private String   className;
-    private String   fieldName;
-    private Class<?> clazz;
+    /**
+     * @return the updateType
+     */
+    public UpdateType getUpdateType() {
+        return updateType;
+    }
 
-    public SchemaUpdate( String className, String fieldName, Class<?> clazz ) {
+    /**
+     * @param className
+     *            the className to set
+     */
+    public void setClassName( String className ) {
         this.className = className;
-        this.fieldName = fieldName;
+    }
+
+    /**
+     * @param clazz
+     *            the clazz to set
+     */
+    public void setClazz( Class<?> clazz ) {
         this.clazz = clazz;
+    }
+
+    /**
+     * @param fieldName
+     *            the fieldName to set
+     */
+    public void setFieldName( String fieldName ) {
+        this.fieldName = fieldName;
+    }
+
+    /**
+     * @param newName
+     *            the newName to set
+     */
+    public void setNewName( String newName ) {
+        this.newName = newName;
+    }
+
+    /**
+     * @param updateType
+     *            the updateType to set
+     */
+    public void setUpdateType( UpdateType updateType ) {
+        this.updateType = updateType;
     }
 
 }
