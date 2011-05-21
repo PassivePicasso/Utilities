@@ -2,7 +2,9 @@ package me.passivepicasso.util;
 
 import static ch.lambdaj.Lambda.filter;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,6 +12,7 @@ import java.util.Set;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -74,170 +77,173 @@ public class BlockMatrixNode {
         x = block.getX();
         y = block.getY();
         z = block.getZ();
-        if (matrixNodes.containsKey(block)) {
-            return;
-        } else {
+        if ( !matrixNodes.containsKey(block) ) {
             matrixNodes.put(block, this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(1, 0, 0))) {
-            BlockMatrixNode nextX = this.matrixNodes.get(block.getRelative(1, 0, 0));
-            setSouth(nextX);
-            nextX.setNorth(this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(-1, 0, 0))) {
-            BlockMatrixNode previousX = this.matrixNodes.get(block.getRelative(-1, 0, 0));
-            setNorth(previousX);
-            previousX.setSouth(this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(0, 1, 0))) {
-            BlockMatrixNode nextY = this.matrixNodes.get(block.getRelative(0, 1, 0));
-            setUp(nextY);
-            nextY.setDown(this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(0, -1, 0))) {
-            BlockMatrixNode previousY = this.matrixNodes.get(block.getRelative(0, -1, 0));
-            setDown(previousY);
-            previousY.setUp(this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(0, 0, 1))) {
-            BlockMatrixNode nextZ = this.matrixNodes.get(block.getRelative(0, 0, 1));
-            setWest(nextZ);
-            nextZ.setEast(this);
-        }
-        if (this.matrixNodes.containsKey(block.getRelative(0, 0, -1))) {
-            BlockMatrixNode previousZ = this.matrixNodes.get(block.getRelative(0, 0, -1));
-            setEast(previousZ);
-            previousZ.setWest(this);
+            if ( this.matrixNodes.containsKey(block.getRelative(1, 0, 0)) ) {
+                BlockMatrixNode nextX = this.matrixNodes.get(block.getRelative(1, 0, 0));
+                setSouth(nextX);
+                nextX.setNorth(this);
+            }
+            if ( this.matrixNodes.containsKey(block.getRelative(-1, 0, 0)) ) {
+                BlockMatrixNode previousX = this.matrixNodes.get(block.getRelative(-1, 0, 0));
+                setNorth(previousX);
+                previousX.setSouth(this);
+            }
+            if ( this.matrixNodes.containsKey(block.getRelative(0, 1, 0)) ) {
+                BlockMatrixNode nextY = this.matrixNodes.get(block.getRelative(0, 1, 0));
+                setUp(nextY);
+                nextY.setDown(this);
+            }
+            if ( this.matrixNodes.containsKey(block.getRelative(0, -1, 0)) ) {
+                BlockMatrixNode previousY = this.matrixNodes.get(block.getRelative(0, -1, 0));
+                setDown(previousY);
+                previousY.setUp(this);
+            }
+            if ( this.matrixNodes.containsKey(block.getRelative(0, 0, 1)) ) {
+                BlockMatrixNode nextZ = this.matrixNodes.get(block.getRelative(0, 0, 1));
+                setWest(nextZ);
+                nextZ.setEast(this);
+            }
+            if ( this.matrixNodes.containsKey(block.getRelative(0, 0, -1)) ) {
+                BlockMatrixNode previousZ = this.matrixNodes.get(block.getRelative(0, 0, -1));
+                setEast(previousZ);
+                previousZ.setWest(this);
+            }
+        } else {
+            BlockMatrixNode existing = matrixNodes.get(block);
+            try {
+                for (Field field : BlockMatrixNode.class.getFields()) {
+                    field.set(this, field.get(existing));
+                }
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public boolean addDown() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.DOWN).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.DOWN), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.DOWN), matrixNodes);
+        if ( getDown() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.DOWN).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.DOWN), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.DOWN), matrixNodes);
+            }
         }
-        return node != null;
+        return getDown() != null;
     }
 
     public boolean addEast() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.EAST).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.EAST), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.EAST), matrixNodes);
+        if ( getEast() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.EAST).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.EAST), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.EAST), matrixNodes);
+            }
         }
-        return node != null;
+        return getEast() != null;
     }
 
     public boolean addNorth() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.NORTH).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.NORTH), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.NORTH), matrixNodes);
+        if ( getSouth() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.NORTH).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.NORTH), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.NORTH), matrixNodes);
+            }
         }
-        return node != null;
+        return getSouth() != null;
     }
 
     public boolean addSouth() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.SOUTH).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.SOUTH), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.SOUTH), matrixNodes);
+        if ( getSouth() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.SOUTH).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.SOUTH), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.SOUTH), matrixNodes);
+            }
         }
-        return node != null;
+        return getSouth() != null;
     }
 
     public boolean addUp() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.UP).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.UP), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.UP), matrixNodes);
+        if ( getUp() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.UP).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.UP), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.UP), matrixNodes);
+            }
         }
-        return node != null;
+        return getUp() != null;
     }
 
     public boolean addWest() {
-        BlockMatrixNode node = null;
-        if ((filter != null) && filter.contains(block.getFace(BlockFace.WEST).getType())) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.WEST), matrixNodes);
-        } else if (filter == null) {
-            node = new BlockMatrixNode(block.getFace(BlockFace.WEST), matrixNodes);
+        if ( getWest() == null ) {
+            if ( filter != null && filter.contains(block.getFace(BlockFace.WEST).getType()) ) {
+                new BlockMatrixNode(block.getFace(BlockFace.WEST), matrixNodes);
+            } else if ( filter == null ) {
+                new BlockMatrixNode(block.getFace(BlockFace.WEST), matrixNodes);
+            }
         }
-        return node != null;
+        return getWest() != null;
     }
 
     public void complete() {
         isComplete = true;
-        if (hasNorth() && !getNorth().isComplete()) {
+        if ( hasNorth() && !getNorth().isComplete() ) {
             getNorth().complete();
         }
-        if (hasEast() && !getEast().isComplete()) {
+        if ( hasEast() && !getEast().isComplete() ) {
             getEast().complete();
         }
-        if (hasSouth() && !getSouth().isComplete()) {
+        if ( hasSouth() && !getSouth().isComplete() ) {
             getSouth().complete();
         }
-        if (hasWest() && !getWest().isComplete()) {
+        if ( hasWest() && !getWest().isComplete() ) {
             getWest().complete();
         }
     }
 
     public void dispose() {
-        if (matrixNodes.size() > 0) {
+        if ( matrixNodes.size() > 0 ) {
             matrixNodes.clear();
         }
-        if (hasNorth()) {
+        if ( hasNorth() ) {
             getNorth().dispose();
         }
-        if (hasEast()) {
+        if ( hasEast() ) {
             getEast().dispose();
         }
-        if (hasSouth()) {
+        if ( hasSouth() ) {
             getSouth().dispose();
         }
-        if (hasWest()) {
+        if ( hasWest() ) {
             getWest().dispose();
         }
-        if (hasNorth()) {
+        if ( hasNorth() ) {
             setNorth(null);
         }
-        if (hasEast()) {
+        if ( hasEast() ) {
             setEast(null);
         }
-        if (hasSouth()) {
+        if ( hasSouth() ) {
             setSouth(null);
         }
-        if (hasWest()) {
+        if ( hasWest() ) {
             setWest(null);
         }
     }
 
     @Override
     public boolean equals( Object obj ) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
+        if ( this == obj ) { return true; }
+        if ( obj == null ) { return false; }
+        if ( getClass() != obj.getClass() ) { return false; }
         BlockMatrixNode other = (BlockMatrixNode) obj;
-        if (x != other.x) {
-            return false;
-        }
-        if (y != other.y) {
-            return false;
-        }
-        if (z != other.z) {
-            return false;
-        }
+        if ( x != other.x ) { return false; }
+        if ( y != other.y ) { return false; }
+        if ( z != other.z ) { return false; }
         return true;
     }
 
@@ -253,8 +259,98 @@ public class BlockMatrixNode {
         return this.z == z;
     }
 
+    public void fillRadius( BlockMatrixNode next, int range ) {
+        if ( range == 0 ) { return; }
+        if ( getUp() == null ) {
+            if ( addUp() ) {
+                if ( getUp() != null && distanceSquared(getUp().getBlock()) < range * range ) {
+                    fillRadius(getUp(), range - 1);
+                } else {
+                    matrixNodes.remove(getUp().block);
+                    setUp(null);
+                }
+            }
+        }
+        if ( getDown() == null ) {
+            if ( addDown() ) {
+                if ( getDown() != null && distanceSquared(getDown().getBlock()) < range * range ) {
+                    fillRadius(getDown(), range - 1);
+                } else {
+                    matrixNodes.remove(getDown().block);
+                    setDown(null);
+                }
+            }
+        }
+        if ( getNorth() == null ) {
+            if ( addNorth() ) {
+                if ( getNorth() != null && distanceSquared(getNorth().getBlock()) < range * range ) {
+                    fillRadius(getNorth(), range - 1);
+                } else {
+                    matrixNodes.remove(getNorth().block);
+                    setNorth(null);
+                }
+            }
+        }
+        if ( getEast() == null ) {
+            if ( addEast() ) {
+                if ( getEast() != null && distanceSquared(getEast().getBlock()) < range * range ) {
+                    fillRadius(getEast(), range - 1);
+                } else {
+                    matrixNodes.remove(getEast().block);
+                    setEast(null);
+                }
+            }
+        }
+        if ( getSouth() == null ) {
+            if ( addSouth() ) {
+                if ( getSouth() != null && distanceSquared(getSouth().getBlock()) < range * range ) {
+                    fillRadius(getSouth(), range - 1);
+                } else {
+                    matrixNodes.remove(getSouth().block);
+                    setSouth(null);
+                }
+            }
+        }
+        if ( getWest() == null ) {
+            if ( addWest() ) {
+                if ( getWest() != null && distanceSquared(getWest().getBlock()) < range * range ) {
+                    fillRadius(getWest(), range - 1);
+                } else {
+                    matrixNodes.remove(getWest().block);
+                    setWest(null);
+                }
+            }
+        }
+    }
+
+    public void floodFill() {
+        floodFill(this);
+    }
+
+    public void floodFill( BlockMatrixNode next ) {
+        if ( next == null ) { return; }
+        if ( next.getUp() == null && next.addUp() ) {
+            next.floodFill(getUp());
+        }
+        if ( next.getDown() == null && next.addDown() ) {
+            next.floodFill(getDown());
+        }
+        if ( next.getEast() == null && next.addEast() ) {
+            next.floodFill(getEast());
+        }
+        if ( next.getWest() == null && next.addWest() ) {
+            next.floodFill(getWest());
+        }
+        if ( next.getNorth() == null && next.addNorth() ) {
+            next.floodFill(getNorth());
+        }
+        if ( next.getSouth() == null && next.addSouth() ) {
+            next.floodFill(getSouth());
+        }
+    }
+
     public Block getBlock() {
-        if (block == null) {
+        if ( block == null ) {
 
         }
         return block;
@@ -279,11 +375,17 @@ public class BlockMatrixNode {
      */
     public Set<BlockMatrixNode> getBlockPlane( final Axis axis, final int value ) {
         Matcher<BlockMatrixNode> onAxis = new BaseMatcher<BlockMatrixNode>() {
+            @Override
+            public void describeTo( Description description ) {
+
+            }
+
+            @Override
             public boolean matches( Object item ) {
                 int val = value;
-                if (item.getClass().equals(BlockMatrixNode.class)) {
+                if ( item.getClass().equals(BlockMatrixNode.class) ) {
                     BlockMatrixNode node = (BlockMatrixNode) item;
-                    if ((filter == null) || getFilter().contains(node.getBlock().getType())) {
+                    if ( filter == null || getFilter().contains(node.getBlock().getType()) ) {
                         switch (axis) {
                             case X:
                                 return node.equalsX(val);
@@ -295,10 +397,6 @@ public class BlockMatrixNode {
                     }
                 }
                 return false;
-            }
-
-            public void describeTo( Description description ) {
-
             }
         };
         HashSet<BlockMatrixNode> nodes = new HashSet<BlockMatrixNode>(filter(onAxis, matrixNodes.values()));
@@ -315,6 +413,17 @@ public class BlockMatrixNode {
 
     public Set<Material> getFilter() {
         return filter;
+    }
+
+    public HashSet<Block> getFilteredExternalAdjancentBlocks() {
+        HashSet<Block> blocks = new HashSet<Block>();
+        for (BlockFace face : EnumSet.complementOf(EnumSet.of(BlockFace.SELF, BlockFace.NORTH_EAST, BlockFace.NORTH_WEST, BlockFace.SOUTH_EAST,
+                BlockFace.SOUTH_WEST))) {
+            if ( filter.contains(getBlock().getFace(face).getType()) && matrixNodes.containsKey(getBlock().getFace(face)) ) {
+                blocks.add(block);
+            }
+        }
+        return blocks;
     }
 
     /**
@@ -356,44 +465,32 @@ public class BlockMatrixNode {
     }
 
     public boolean hasFilteredDown() {
-        if ((filter != null) && (previousY != null)) {
-            return filter.contains(previousY.getBlock().getType());
-        }
+        if ( filter != null && previousY != null ) { return filter.contains(previousY.getBlock().getType()); }
         return false;
     }
 
     public boolean hasFilteredEast() {
-        if ((filter != null) && (previousZ != null)) {
-            return filter.contains(previousZ.getBlock().getType());
-        }
+        if ( filter != null && previousZ != null ) { return filter.contains(previousZ.getBlock().getType()); }
         return false;
     }
 
     public boolean hasFilteredNorth() {
-        if ((filter != null) && (previousX != null)) {
-            return filter.contains(previousX.getBlock().getType());
-        }
+        if ( filter != null && previousX != null ) { return filter.contains(previousX.getBlock().getType()); }
         return false;
     }
 
     public boolean hasFilteredSouth() {
-        if ((filter != null) && (nextX != null)) {
-            return filter.contains(nextX.getBlock().getType());
-        }
+        if ( filter != null && nextX != null ) { return filter.contains(nextX.getBlock().getType()); }
         return false;
     }
 
     public boolean hasFilteredUp() {
-        if ((filter != null) && (nextY != null)) {
-            return filter.contains(nextY.getBlock().getType());
-        }
+        if ( filter != null && nextY != null ) { return filter.contains(nextY.getBlock().getType()); }
         return false;
     }
 
     public boolean hasFilteredWest() {
-        if ((filter != null) && (nextZ != null)) {
-            return filter.contains(nextZ.getBlock().getType());
-        }
+        if ( filter != null && nextZ != null ) { return filter.contains(nextZ.getBlock().getType()); }
         return false;
     }
 
@@ -428,8 +525,8 @@ public class BlockMatrixNode {
     }
 
     public void setDown( BlockMatrixNode previousY ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(previousY.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(previousY.getBlock().getType()) ) {
                 this.previousY = previousY;
             }
         } else {
@@ -438,8 +535,8 @@ public class BlockMatrixNode {
     }
 
     public void setEast( BlockMatrixNode previousZ ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(previousZ.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(previousZ.getBlock().getType()) ) {
                 this.previousZ = previousZ;
             }
         } else {
@@ -447,13 +544,18 @@ public class BlockMatrixNode {
         }
     }
 
+    /**
+     * Add an Inclusive Filter, using filtered retrievers will only find blocks of the Material types specified in the filter.
+     * 
+     * @param filter
+     */
     public void setFilter( Set<Material> filter ) {
         this.filter = filter;
     }
 
     public void setNorth( BlockMatrixNode previousX ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(previousX.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(previousX.getBlock().getType()) ) {
                 this.previousX = previousX;
             }
         } else {
@@ -462,8 +564,8 @@ public class BlockMatrixNode {
     }
 
     public void setSouth( BlockMatrixNode nextX ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(nextX.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(nextX.getBlock().getType()) ) {
                 this.nextX = nextX;
             }
         } else {
@@ -472,8 +574,8 @@ public class BlockMatrixNode {
     }
 
     public void setUp( BlockMatrixNode nextY ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(nextY.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(nextY.getBlock().getType()) ) {
                 this.nextY = nextY;
             }
         } else {
@@ -482,8 +584,8 @@ public class BlockMatrixNode {
     }
 
     public void setWest( BlockMatrixNode nextZ ) {
-        if (getFilter() != null) {
-            if (getFilter().contains(nextZ.getBlock().getType())) {
+        if ( getFilter() != null ) {
+            if ( getFilter().contains(nextZ.getBlock().getType()) ) {
                 this.nextZ = nextZ;
             }
         } else {
@@ -493,5 +595,17 @@ public class BlockMatrixNode {
 
     public int size() {
         return matrixNodes.size();
+    }
+
+    private double distanceSquared( Block target ) {
+        Location loc = getBlock().getLocation();
+        Location tar = target.getLocation();
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        int xd = x - tar.getBlockX();
+        int yd = y - tar.getBlockY();
+        int zd = z - tar.getBlockZ();
+        return xd * xd + yd * yd + zd * zd;
     }
 }

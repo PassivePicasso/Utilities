@@ -88,7 +88,6 @@ public class DatabaseManager {
      * @param pluginName
      */
     public static void initialize( String pluginName, DatabaseVersion version ) throws NullPointerException {
-
         log.info("Beginning initialization");
         DatabaseManager.pluginName = pluginName;
         DatabaseManager.filename = pluginName + ".neodatis";
