@@ -417,10 +417,11 @@ public class BlockMatrixNode {
 
     public HashSet<Block> getFilteredExternalAdjancentBlocks() {
         HashSet<Block> blocks = new HashSet<Block>();
-        for (BlockFace face : EnumSet.complementOf(EnumSet.of(BlockFace.SELF, BlockFace.NORTH_EAST, BlockFace.NORTH_WEST, BlockFace.SOUTH_EAST,
-                BlockFace.SOUTH_WEST))) {
-            if ( filter.contains(getBlock().getFace(face).getType()) && matrixNodes.containsKey(getBlock().getFace(face)) ) {
-                blocks.add(block);
+        for (BlockFace face : EnumSet.of(BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST)) {
+            if ( filter.contains(getBlock().getFace(face).getType()) ) {
+                if ( !matrixNodes.containsKey(getBlock().getFace(face)) ) {
+                    blocks.add(block);
+                }
             }
         }
         return blocks;
