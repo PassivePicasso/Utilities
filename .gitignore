@@ -12,6 +12,12 @@
 # maven
 /target
 
+# IDEA
+*.ipr
+*.iws
+*.iml
+
+
 # vim
 .*.sw[a-p]
 
