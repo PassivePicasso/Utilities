@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import me.passivepicasso.util.SchemaUpdate.UpdateType;
+import me.passivepicasso.util.DatabaseVersion;
+import me.passivepicasso.util.SchemaUpdate;
 
 import org.neodatis.odb.ODB;
 import org.neodatis.odb.ODBFactory;
@@ -60,6 +62,10 @@ public class DatabaseManager {
         odb.close();
     }
 
+    public static <T> void delete(T object){
+        odb.delete(object);
+    }
+
     public static File getDatabaseFile() {
         return new File("." + File.pathSeparator + "plugins" + pluginName + File.pathSeparator + filename);
     }
@@ -84,7 +90,7 @@ public class DatabaseManager {
 
     /**
      * Initialize and open the database.
-     * 
+     *
      * @param pluginName
      */
     public static void initialize( String pluginName, DatabaseVersion version ) throws NullPointerException {

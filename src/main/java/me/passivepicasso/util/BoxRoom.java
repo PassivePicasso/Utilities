@@ -39,10 +39,7 @@ public class BoxRoom {
         if (width != boxRoom.width) {
             return false;
         }
-        if (x != boxRoom.x) {
-            return false;
-        }
-        return y == boxRoom.y && z == boxRoom.z;
+        return x == boxRoom.x && y == boxRoom.y && z == boxRoom.z;
     }
 
     @Override
